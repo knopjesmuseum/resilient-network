@@ -1,14 +1,14 @@
 Resilient network PCB
 =====================
-Contains:
+Contains, with atmega on the right: 
 - 2 led groups
-- 3x bus system, see: http://nerdralph.blogspot.ca/2014/01/avr-half-duplex-software-uart.html
-- 3x magnet controlling mosfets + debug lights
+- 3x bus system, on the bottom, see: http://nerdralph.blogspot.ca/2014/01/avr-half-duplex-software-uart.html
+- 3x magnet controlling mosfets, left side
 - power regulation
 - Footprint for Atmega 328p 
 - 2 programming connections: ISP and serial
-- Solder pads for disturbance button (S +)
-- 6 debug leds, with atmega on the right, from left to right: 
+- 2 button footprints, one used for disturbance button (top)
+- 6 debug leds, from left to right: 
   1. Magnet / coil 1 enabled
   2. Magnet / coil 2 enabled
   3. Magnet / coil 3 enabled
