@@ -127,7 +127,7 @@ void setup() {
 
 void loop() {
   if (isSource) {
-    if (!digitalRead(button1pin)) {
+    if (!digitalRead(button2pin)) {
       if(SERIAL_DEBUG) Serial.println("alert");
       char c = ALERT; 
       for (int i=0; i<3; i++) bus[i]->write(c);
