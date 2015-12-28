@@ -2,7 +2,7 @@ Resilient Network
 =================
 
 Uses Software Serial WithHalf Duplex library  
-Probably: https://github.com/nickstedman/SoftwareSerialWithHalfDuplex
+https://github.com/nickstedman/SoftwareSerialWithHalfDuplex
 
 Possible alternative:  
 http://hackaday.com/2014/01/13/software-half-duplex-uart-for-avrs/  
