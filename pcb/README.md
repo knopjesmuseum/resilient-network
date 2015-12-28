@@ -12,6 +12,9 @@ Contains:
   1. Magnet / coil 1 enabled
   2. Magnet / coil 2 enabled
   3. Magnet / coil 3 enabled
+  4. ...
+  5. Led 1 group enabled
+  6. Led 2 group enabled
 
 Bill of materials
 --------------------
