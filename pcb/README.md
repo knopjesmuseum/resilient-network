@@ -8,6 +8,10 @@ Contains:
 - Footprint for Atmega 328p 
 - 2 programming connections: ISP and serial
 - Solder pads for disturbance button (S +)
+- 6 debug leds, with atmega on the right, from left to right: 
+  1. Magnet / coil 1 enabled
+  2. Magnet / coil 2 enabled
+  3. Magnet / coil 3 enabled
 
 Bill of materials
 --------------------
