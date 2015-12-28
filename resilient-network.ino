@@ -10,6 +10,8 @@
 #define button1pin 2 // not used
 #define button2pin 4
 
+#define SERIAL_DEBUG true
+
 #define ENERGY 0
 #define DROPPING_CONNECTOR 254
 #define ALERT 255
@@ -26,6 +28,7 @@ int alertState;
 int alertTimer;
 
 void sendEnergy() {
+  if(SERIAL_DEBUG) Serial.println("send energy");
   char c = ENERGY;
   for (int i=0; i<3; i++) bus[i]->write(c);
   addTimer(100, sendEnergy);
@@ -115,11 +118,17 @@ void setup() {
   
   // start sending energy if we're a source
   if (isSource) addTimer(100, sendEnergy);
+  
+  if(SERIAL_DEBUG) {
+    Serial.begin(9600);
+    Serial.println("setup");
+  }
 }
 
 void loop() {
   if (isSource) {
     if (!digitalRead(button1pin)) {
+      if(SERIAL_DEBUG) Serial.println("alert");
       char c = ALERT; 
       for (int i=0; i<3; i++) bus[i]->write(c);
     }
@@ -128,6 +137,7 @@ void loop() {
   // check all lines for incoming data
   for (int i=0;i<3;i++) if(bus[i]->available()) {
     char c = bus[i]->read();
+    if(SERIAL_DEBUG) Serial.println("received: "+c);
     switch(c) {
       case ALERT: // button is pressed
         if (!isSource && !alertState) {
