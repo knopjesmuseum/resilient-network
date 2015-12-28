@@ -1,9 +1,9 @@
 // resilient network
-#include <SoftwareSerialWithHalfDuplex.h>
+#include <SoftwareSerialWithHalfDuplex.h> // which one? 
 #include "Arduino.h"
 #include "timers.h"
 
-#define isSource false
+#define isSource false // ToDo: control through jumper
 
 #define leds1pin 11
 #define leds2pin 3
@@ -13,7 +13,7 @@ SoftwareSerialWithHalfDuplex* bus[3];
 
 int RX[3] = {A0, A2, A4};
 int TX[3] = {A1, A3, A5};
-int coil[3] = {6, 5, 10};
+int coil[3] = {6, 5, 10}; // magnets
 int distanceToSource[3];
 int shortestDistanceToSource;
 int lampState;
