@@ -3,7 +3,7 @@
 #include "Arduino.h"
 #include "timers.h"
 
-#define isSource false // ToDo: control through jumper
+#define isSource false // ToDo: control through jumper, use button2pin?
 
 #define leds1pin 11
 #define leds2pin 3
@@ -158,7 +158,8 @@ void loop() {
       default: // energy is received
         if (!isSource) {
           if (c<distanceToSource[i]+1) distanceToSource[i] = c+1;
-          // if we are not connected and energy was received start timer to process energy (hopefully this does enhances asynchronous updating between the nodes
+          // if we are not connected and energy was received start timer to process energy 
+          // (hopefully this does enhances asynchronous updating between the nodes)
           if (shortestDistanceToSource == 99) addTimer(10, processEnergy);
         }
     }
