@@ -9,6 +9,10 @@
 #define leds2pin 3
 #define button1pin 4
 
+#define ENERGY 0
+#define DROPPING_CONNECTOR 254
+#define ALERT 255
+
 SoftwareSerialWithHalfDuplex* bus[3];
 
 int RX[3] = {A0, A2, A4};
@@ -21,7 +25,7 @@ int alertState;
 int alertTimer;
 
 void sendEnergy() {
-  char c = 0;
+  char c = ENERGY;
   for (int i=0; i<3; i++) bus[i]->write(c);
   addTimer(100, sendEnergy);
 }
@@ -44,7 +48,7 @@ void resetConnectors() {
 
 void dropConnector() {
   // send out message that we're going to drop a connector
-  char c = 254;
+  char c = DROPPING_CONNECTOR;
   for (int i=0; i<3; i++) bus[i]->write(c);
   
   // pick random connector to drop
@@ -115,7 +119,7 @@ void setup() {
 void loop() {
   if (isSource) {
     if (!digitalRead(button1pin)) {
-      char c = 255;
+      char c = ALERT; 
       for (int i=0; i<3; i++) bus[i]->write(c);
     }
   }
@@ -124,7 +128,7 @@ void loop() {
   for (int i=0;i<3;i++) if(bus[i]->available()) {
     char c = bus[i]->read();
     switch(c) {
-      case 255: // button is pressed
+      case ALERT: // button is pressed
         if (!isSource && !alertState) {
           // set alert state and set random timer
           alertState = true;
@@ -133,7 +137,7 @@ void loop() {
           for (int j=0; j<3; j++) if (j!=i) bus[j]->write(c);
         }
         break;
-      case 254: // some connector in the network is dropped
+      case DROPPING_CONNECTOR: // some connector in the network is dropped
         // relax alert state and timer
         removeTimer(alertTimer);
         alertState = false;
