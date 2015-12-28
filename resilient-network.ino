@@ -7,7 +7,8 @@
 
 #define leds1pin 11
 #define leds2pin 3
-#define button1pin 4
+#define button1pin 2 // not used
+#define button2pin 4
 
 #define ENERGY 0
 #define DROPPING_CONNECTOR 254
@@ -99,7 +100,7 @@ void setup() {
   for (int i=0; i<3; i++) pinMode(coil[i], OUTPUT);
   pinMode(leds1pin, OUTPUT);
   pinMode(leds2pin, OUTPUT);
-  pinMode(button1pin, INPUT_PULLUP);
+  pinMode(button2pin, INPUT_PULLUP);
   
   // set initial states
   for (int i=0; i<3; i++) bus[i]->begin(1200);
