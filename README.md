@@ -1,7 +1,7 @@
 Resilient Network
 =================
 
-Uses Software Serial WithHalf Duplex library  
+Uses Software Serial with half Duplex library  
 https://github.com/nickstedman/SoftwareSerialWithHalfDuplex
 
 Possible alternative:  
