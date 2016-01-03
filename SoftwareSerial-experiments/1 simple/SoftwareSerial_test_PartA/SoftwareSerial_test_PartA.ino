@@ -24,14 +24,18 @@
 
 #include <SoftwareSerial.h>
 
-#define rx A0
-#define tx A1
+#define rx A1
+#define tx A0
 #define coil1 6
 #define coil2 5
+#define leds1pin 11
+#define leds2pin 3
 
+#define MAX_COUNTER 1000; //4294967295;
+unsigned long counter = MAX_COUNTER;
+boolean coilEnabled = false;
 
-int counter = 320766;
-SoftwareSerial debugPort(rx, tx, false, false);
+SoftwareSerial debugPort(rx, tx);
 
 const int myID = 1;
 
@@ -39,27 +43,33 @@ void setup(){
   debugPort.begin(9600);
   pinMode(coil1, OUTPUT);
   pinMode(coil2, OUTPUT);
+  
+  pinMode(leds1pin, OUTPUT);
+  pinMode(leds2pin, OUTPUT);
+  digitalWrite(leds1pin, LOW);
+  digitalWrite(leds2pin, LOW);
 }
 
 void loop(){
   if( debugPort.available() ){
-    counter = 1024;
-    // digitalWrite(coil1, HIGH);
-    // digitalWrite(coil2, LOW);
+    counter = MAX_COUNTER;
     int i = int(debugPort.read());
     if( i == myID ){
       debugPort.print("I am ");
       debugPort.println(myID);
     }
-  } else {
-    // digitalWrite(coil1, LOW);
-    // digitalWrite(coil2, HIGH);
-  }
+  } 
   if(counter > 0) {
-    digitalWrite(coil1, HIGH);
+    updateCoil(true);
   } else {
-    digitalWrite(coil1, LOW);
+    updateCoil(false);
   }
-  counter--;
-  if(counter < 0) counter = 0;
+  if(counter > 0) counter --;
+}
+
+void updateCoil(boolean enable) {
+  if(enable != coilEnabled) {
+    digitalWrite(coil1, enable? HIGH : LOW);
+    coilEnabled = enable;
+  }
 }

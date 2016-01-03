@@ -25,16 +25,30 @@
 
 #include <SoftwareSerial.h>
 
-#define rx A0
-#define tx A1
+#define rx A1
+#define tx A0
+#define coil1 6
+#define coil2 5
+#define leds1pin 11
+#define leds2pin 3
+
+#define MAX_COUNTER 1000; //4294967295;
+unsigned long counter = MAX_COUNTER;
+boolean coilEnabled = false;
 
 // add arguments of false (for inverse_logic?), false (for full-duplex?) for half duplex.
 // you can then use the same pin for both transmit and receive.
-SoftwareSerial debugPort(rx, tx, false, false);
+SoftwareSerial debugPort(rx, tx);
 
 void setup(){
   debugPort.begin(9600);         // to connect with other devices
   Serial.begin(9600);            // to see who's connected
+  // pinMode(rx, INPUT_PULLUP);
+  
+  pinMode(leds1pin, OUTPUT);
+  pinMode(leds2pin, OUTPUT);
+  digitalWrite(leds1pin, LOW);
+  digitalWrite(leds2pin, LOW);
 }
 
 void loop(){
@@ -43,7 +57,21 @@ void loop(){
     Serial.write(c);
   }
   if( Serial.available()){
+    counter = MAX_COUNTER;
     int i = int(Serial.read())-48;
     debugPort.write(i);
+  }
+  if(counter > 0) {
+    updateCoil(true);
+  } else {
+    updateCoil(false);
+  }
+  if(counter > 0) counter --;
+}
+
+void updateCoil(boolean enable) {
+  if(enable != coilEnabled) {
+    digitalWrite(coil1, enable? HIGH : LOW);
+    coilEnabled = enable;
   }
 }
