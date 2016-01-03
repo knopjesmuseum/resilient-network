@@ -32,13 +32,14 @@ int RX[NUM_CONN] = {A0, A2, A4};
 int TX[NUM_CONN] = {A1, A3, A5};
 #define coil1 6
 #define coil2 5
+#define leds1pin 11
+#define leds2pin 3
 
 #define MAX_COUNTER 1000; //4294967295;
 unsigned long counter = MAX_COUNTER;
+boolean coilEnabled = false;
 
 const int myID = 1;
-
-boolean coilEnabled = false;
 
 void setup(){
   for (int i=0; i<NUM_CONN; i++) {
@@ -48,6 +49,11 @@ void setup(){
   
   pinMode(coil1, OUTPUT);
   pinMode(coil2, OUTPUT);
+  pinMode(leds1pin, OUTPUT);
+  pinMode(leds2pin, OUTPUT);
+  
+  digitalWrite(leds1pin, LOW);
+  digitalWrite(leds2pin, LOW);
 }
 
 void loop(){

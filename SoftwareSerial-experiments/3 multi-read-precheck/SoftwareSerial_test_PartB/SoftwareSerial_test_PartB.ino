@@ -32,6 +32,9 @@ int TX[NUM_CONN] = {A1, A3, A5};
 
 #define coil1 6
 #define coil2 5
+#define leds1pin 11
+#define leds2pin 3
+
 #define MAX_COUNTER 1000; //4294967295;
 unsigned long counter = MAX_COUNTER;
 boolean coilEnabled = false;
@@ -46,6 +49,11 @@ uint8_t _receiveBitMask2;
 void setup(){
   pinMode(coil1, OUTPUT);
   pinMode(coil2, OUTPUT);
+  
+  pinMode(leds1pin, OUTPUT);
+  pinMode(leds2pin, OUTPUT);
+  digitalWrite(leds1pin, LOW);
+  digitalWrite(leds2pin, LOW);
   
   // add arguments of false (for inverse_logic?), false (for full-duplex?) for half duplex.
   // you can then use the same pin for both transmit and receive.
