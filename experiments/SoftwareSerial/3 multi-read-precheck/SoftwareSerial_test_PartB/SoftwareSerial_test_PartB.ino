@@ -1,131 +1,122 @@
-
-/*
-  This example program can be used to test the "SoftwareSerialWithHalfDuplex" library, adapted from the SoftwareSerial library.
-  The value of half-duplex is that one pin can be used for both transmitting and receiving data.
-  Also many devices can be daisy-chained to the same line. RS485 still commonly uses half-duplex.
-  
-  By default the library works the same as the SoftwareSerial library, but by adding a couple of additional arguments
-  it can be configured for half-duplex. In that case, the transmit pin is set by default to an input, with the pull-up set. 
-  When transmitting the pin temporarily switches to an output until the byte is sent, then flips back to input. When a module is 
-  receiving it should not be able to transmit, and vice-versa. This library probably won't work as is if you need inverted-logic.
-  
-  To use this test example, upload SoftwareSerialWithHalfDuplex_test_partA to as many arduinos as you like. Be sure to change 
-  "myID" for each arduino loaded with partA. Upload SoftwareSerialWithHalfDuplex_test_partB to a different arduino. All arduinos
-  should be connected to each other by the same communications pin, and by ground. Open up the serial monitor pointing to partB.
-  When you type in the id number of one of the devices it should respond.
-  
-  This is a first draft of the library and test programs. It appears to work, but has only been tested on a limited basis,
-  and hasn't yet been tested with any native half-duplex devices (like the bioloid ax12 robot servo). 
-  Seems fairly reliable up to 57600 baud. As with all serial neither error checking, nor addressing are implemented, 
-  so it is likely that you will need to do this yourself. Also, you can make use of other protocols such as i2c. 
-  I am looking for any feedback, advice and help at this stage. 
-  Contact me at n.stedman@steddyrobots.com or on the arduino forums.
-*/
-
 #include <SoftwareSerial.h>
 
 #define NUM_CONN 3 
 
 SoftwareSerial* bus[NUM_CONN];
-int RX[NUM_CONN] = {A0, A2, A4};
-int TX[NUM_CONN] = {A1, A3, A5};
+int RX[NUM_CONN] = {A1, A3, A5};
+int TX[NUM_CONN] = {A0, A2, A4};
 
-#define coil1 6
-#define coil2 5
+int coils[NUM_CONN] = {6, 5, 10};
+boolean coilEnabled[NUM_CONN] = {false, false, false};
+
 #define leds1pin 11
 #define leds2pin 3
 
 #define MAX_COUNTER 1000; //4294967295;
 unsigned long counter = MAX_COUNTER;
-boolean coilEnabled = false;
+boolean ledEnabled = false; 
 
-volatile uint8_t *_receivePortRegister0;
-uint8_t _receiveBitMask0;
-volatile uint8_t *_receivePortRegister1;
-uint8_t _receiveBitMask1;
-volatile uint8_t *_receivePortRegister2;
-uint8_t _receiveBitMask2;
+volatile uint8_t *_rx0PortRegister;
+uint8_t _rx0BitMask;
+volatile uint8_t *_rx1PortRegister;
+uint8_t _rx1BitMask;
+volatile uint8_t *_rx2PortRegister;
+uint8_t _rx2BitMask;
+
+int targetBusIndex = 0;
 
 void setup(){
-  pinMode(coil1, OUTPUT);
-  pinMode(coil2, OUTPUT);
-  
   pinMode(leds1pin, OUTPUT);
   pinMode(leds2pin, OUTPUT);
   digitalWrite(leds1pin, LOW);
   digitalWrite(leds2pin, LOW);
   
-  // add arguments of false (for inverse_logic?), false (for full-duplex?) for half duplex.
-  // you can then use the same pin for both transmit and receive.
   for (int i=0; i<NUM_CONN; i++) {
-    bus[i] = new SoftwareSerial(RX[i], TX[i], false, false);
+    bus[i] = new SoftwareSerial(RX[i], TX[i]);
     bus[i]->begin(9600); //1200
+    pinMode(coils[i], OUTPUT);
   }
   
-  Serial.begin(9600);            // to see who's connected
+  Serial.begin(9600);
   
   uint8_t port0 = digitalPinToPort(RX[0]);
-  _receivePortRegister0 = portInputRegister(port0);
-  _receiveBitMask0 = digitalPinToBitMask(RX[0]);
+  _rx0PortRegister = portInputRegister(port0);
+  _rx0BitMask = digitalPinToBitMask(RX[0]);
   
   uint8_t port1 = digitalPinToPort(RX[1]);
-  _receivePortRegister1 = portInputRegister(port1);
-  _receiveBitMask1 = digitalPinToBitMask(RX[1]);
+  _rx1PortRegister = portInputRegister(port1);
+  _rx1BitMask = digitalPinToBitMask(RX[1]);
   
   uint8_t port2 = digitalPinToPort(RX[2]);
-  _receivePortRegister2 = portInputRegister(port2);
-  _receiveBitMask2 = digitalPinToBitMask(RX[2]);
-  
-  // bus[0]->listen();
-}
-
-uint8_t rx_pin_read0() {
-  return *_receivePortRegister0 & _receiveBitMask0;
-}
-uint8_t rx_pin_read1() {
-  return *_receivePortRegister1 & _receiveBitMask1;
-}
-uint8_t rx_pin_read2() {
-  return *_receivePortRegister2 & _receiveBitMask2;
+  _rx2PortRegister = portInputRegister(port2);
+  _rx2BitMask = digitalPinToBitMask(RX[2]);
 }
 
 void loop(){
   
-  if (rx_pin_read0()) {
-    // bus[0]->listen();
-    Serial.println('a');
+  if (!rx0Read()) {
+    updateCoil(0, true);
+    readBus(0);
   }
-  if (rx_pin_read1()) {
-    // bus[1]->listen();
-    Serial.println('b');
+  if (!rx1Read()) {
+    updateCoil(1, true);
+    readBus(1);
   }
-  if (rx_pin_read2()) {
-    // bus[2]->listen();
-    Serial.println('c');
+  if (!rx2Read()) {
+    updateCoil(2, true);
+    readBus(2);
   }
   
-  // for (int i=0;i<NUM_CONN;i++) {
-  //   if( bus[i]->available() ){
-  //     char c = bus[i]->read();
-  //     Serial.write(c);
-  //   }
-  //   if( Serial.available()){
-  //     counter = MAX_COUNTER;
-  //     int index = int(Serial.read())-48;
-  //     bus[i]->write(index);
-  //   }
-  // }
-  // if(counter > 0) {
-  //   updateCoil(true);
-  // } else {
-  //   updateCoil(false);
-  // }
-  // if(counter > 0) counter --;
+  if( Serial.available()){
+    counter = MAX_COUNTER;
+    int index = int(Serial.read())-48;
+    for (int i=0;i<NUM_CONN;i++) {
+      // bus[i]->write(index);
+      digitalWrite(TX[i], LOW);
+      delay(1);
+      digitalWrite(TX[i], HIGH);
+      bus[i]->write(index);  
+    }
+    // digitalWrite(TX[targetBusIndex], LOW);
+    // delay(1);
+    // digitalWrite(TX[targetBusIndex], HIGH);
+    // bus[targetBusIndex]->write(index);
+    
+    // targetBusIndex++;
+    // if(targetBusIndex > 2) targetBusIndex = 0;
+  }
+  updateLed((counter > 0));
+  if(counter > 0) counter --;
 }
 
-void updateCoil(boolean enable) {
-  if(enable != coilEnabled) {
-    digitalWrite(coil1, enable? HIGH : LOW);
-    coilEnabled = enable;
+uint8_t rx0Read() {
+  return *_rx0PortRegister & _rx0BitMask;
+}
+uint8_t rx1Read() {
+  return *_rx1PortRegister & _rx1BitMask;
+}
+uint8_t rx2Read() {
+  return *_rx2PortRegister & _rx2BitMask;
+}
+
+void readBus(uint8_t index) {
+  bus[index]->listen();
+  if( bus[index]->available() ){
+    char c = bus[index]->read();
+    Serial.write(c);
+  }
+}
+
+void updateCoil(uint8_t pinIndex, boolean enable) {
+  if(enable != coilEnabled[pinIndex]) {
+    digitalWrite(coils[pinIndex], enable? HIGH : LOW);
+    coilEnabled[pinIndex] = enable;
+  }
+}
+
+void updateLed(boolean enable) {
+  if(enable != ledEnabled) {
+    digitalWrite(leds1pin, enable? HIGH : LOW);
+    ledEnabled = enable;
   }
 }
