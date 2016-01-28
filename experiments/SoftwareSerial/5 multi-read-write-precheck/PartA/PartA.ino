@@ -83,7 +83,10 @@ void readActiveBus() {
       // Serial.println(index);
       toggleCoil(activeBus);
       int targetBus = activeBus+1;
-      if(targetBus > NUM_CONN-1) targetBus=0;
+      if(targetBus > NUM_CONN-1) {
+        targetBus=0;
+        toggleLeds();
+      }
       txWrite(targetBus,index);
       // since we're only sending one thing, after reading it we start checking other ports again
       activeBus = -1;
@@ -115,4 +118,8 @@ void txWrite(int index, int value) {
 
 void toggleCoil(int index) {
   digitalWrite(coil[index], !digitalRead(coil[index]));
+}
+void toggleLeds() {
+  digitalWrite(leds1pin, !digitalRead(leds1pin));
+  digitalWrite(leds2pin, !digitalRead(leds2pin));
 }
