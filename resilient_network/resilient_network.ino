@@ -102,7 +102,7 @@ void processEnergy() {
     if (!lampState) switchLampOn();
     // send shortest distance to ports with a higher distance
     for (int i =0; i<NUM_CONN; i++) if (distanceToSource[i] > shortestDistanceToSource) txWrite(i, shortestDistanceToSource);
-    addTimer(500, processEnergy);
+    //addTimer(500, processEnergy);
   }
   // if not, switch off the lamp and drop connectors if we were cut out
   else {
@@ -114,7 +114,7 @@ void processEnergy() {
   }
 
   for (int i=0; i<NUM_CONN; i++) distanceToSource[i] = 99;
-  //addTimer(50, processEnergy);
+  addTimer(200, processEnergy);
 }
 
 uint8_t rxRead(int busIndex) {
@@ -199,7 +199,7 @@ void parseMessage(int busIndex, uint8_t message) {
         // if we are not connected (yet) and a new distance was received start timer to process energy
         // (hopefully this does enhances asynchronous updating between the nodes)
         // ToDo: why use timer here? can't it get triggered to much, shouldn't this simply debounce? why not call on fixed interval?
-        if (shortestDistanceToSource == 99) addTimer(10, processEnergy);
+        //if (shortestDistanceToSource == 99) addTimer(10, processEnergy);
       }
   }
 }
