@@ -5,6 +5,7 @@
 
 #define leds1pin 11
 #define leds2pin 3
+#define debugLedPin 9 // unused + / S footprint / 4th led
 #define button1pin 2 // isSource jumper
 #define button2pin 4 // alert button
 
