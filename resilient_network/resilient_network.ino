@@ -221,12 +221,7 @@ void setup() {
   pinMode(button2pin, INPUT_PULLUP);
 
   // set initial states
-  for (int i=0; i<NUM_CONN; i++) bus[i]->begin(1200);
   resetConnectors();
-
-  for (int i=0; i<NUM_CONN; i++) distanceToSource[i] = 99;
-  shortestDistanceToSource = 99;
-  alertState = false;
 
   // seed random generator
   randomSeed(analogRead(7));
@@ -254,7 +249,6 @@ void loop() {
   if (isSource) {
     if (!digitalRead(button2pin)) { // ToDo: use bitmask
       if(SERIAL_DEBUG) Serial.println("alert");
-      char c = ALERT;
       for (int i=0; i<NUM_CONN; i++) txWrite(i, ALERT);
     }
   }
