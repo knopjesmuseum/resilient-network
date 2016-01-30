@@ -20,7 +20,7 @@ SoftwareSerial* bus[NUM_CONN];
 int RX[NUM_CONN] = {A1, A3, A5};
 int TX[NUM_CONN] = {A0, A2, A4};
 int coil[NUM_CONN] = {6, 5, 10}; // magnets
-int distanceToSource[NUM_CONN];
+int distanceToSource[NUM_CONN] = {99, 99, 99};
 int shortestDistanceToSource;
 int lampState;
 int alertState;
