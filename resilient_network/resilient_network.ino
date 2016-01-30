@@ -3,11 +3,9 @@
 #include "Arduino.h"
 #include "timers.h"
 
-#define isSource false // ToDo: control through jumper, use button2pin?
-
 #define leds1pin 11
 #define leds2pin 3
-#define button1pin 2 // not used
+#define button1pin 2
 #define button2pin 4
 
 #define SERIAL_DEBUG true
@@ -27,6 +25,7 @@ int shortestDistanceToSource;
 int lampState;
 int alertState;
 int alertTimer;
+boolean isSource = false;
 
 void sendEnergy() {
   if(SERIAL_DEBUG) Serial.println("send energy");
@@ -111,6 +110,7 @@ void setup() {
   }
   pinMode(leds1pin, OUTPUT);
   pinMode(leds2pin, OUTPUT);
+  pinMode(button1pin, INPUT_PULLUP);
   pinMode(button2pin, INPUT_PULLUP);
 
   // set initial states
@@ -125,6 +125,7 @@ void setup() {
   randomSeed(analogRead(7));
 
   // start sending energy if we're a source
+  isSource = digitalRead(button1pin) == LOW;
   if (isSource) addTimer(100, sendEnergy);
 
   if(SERIAL_DEBUG) {
@@ -167,7 +168,7 @@ void loop() {
         break;
       default: // distance to source
         if (!isSource) {
-          // if new distance is shorter, take that as distance to source
+          // if new distance is shorter, take that as distance to source for this port
           if (c<distanceToSource[i]+1) distanceToSource[i] = c+1;
           // if we are not connected (yet) and a new distance was received start timer to process energy
           // (hopefully this does enhances asynchronous updating between the nodes)
