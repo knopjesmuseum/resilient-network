@@ -148,7 +148,7 @@ void setActiveBus(int busIndex) {
 }
 
 void readActiveBus() {
-  while(bus[activeBus]->available()) {
+  while(activeBus != -1 && bus[activeBus]->available()) {
     // if(SERIAL_DEBUG) {
     //   Serial.print("a");
     //   Serial.println(activeBus);
@@ -163,7 +163,6 @@ void readActiveBus() {
       }
       parseMessage(activeBus, message);
       activeBus = -1;
-      break;
     }
   }
   if (millis()-listenStartTime > listenTimeout) {
