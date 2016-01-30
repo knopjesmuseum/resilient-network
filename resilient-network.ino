@@ -12,7 +12,6 @@
 
 #define SERIAL_DEBUG true
 
-#define ENERGY 0
 #define DROPPING_CONNECTOR 254
 #define ALERT 255
 
@@ -31,8 +30,9 @@ int alertTimer;
 
 void sendEnergy() {
   if(SERIAL_DEBUG) Serial.println("send energy");
-  char c = ENERGY;
-  for (int i=0; i<NUM_CONN; i++) bus[i]->write(c);
+  // source sends energy, as 0, meaning 0 distance to source
+  char distance = 0;
+  for (int i=0; i<NUM_CONN; i++) bus[i]->write(distance);
   addTimer(100, sendEnergy);
 }
 
@@ -56,34 +56,38 @@ void dropConnector() {
   // send out message that we're going to drop a connector
   char c = DROPPING_CONNECTOR;
   for (int i=0; i<NUM_CONN; i++) bus[i]->write(c);
-  
-  // pick random connector to drop
+
+  // pick random connected connector to drop
+  // count number of ports with a low distance to source
   int n = 0;
   for (int i=0; i<NUM_CONN; i++) if (distanceToSource[i]<99) n++;
   n = random(1,n+1);
   int i=0;
+  // go through ports, only count connecteds ports, untill random number is empty
   while(n) {
     if(distanceToSource[i]<99) n--;
     i++;
   }
-  
+
   // give communication a break and drop connector
   delay(10);
   digitalWrite(coil[i-1], LOW);
   addTimer(1000, resetConnectors);
-  
+
   // relax alert state
   alertState = false;
 }
 
+// ToDo: why not call this on a fixed interval?
 void processEnergy() {
-  // assess energy supply
+  // assess energy supply, find shortest disance to source
   shortestDistanceToSource = 99;
   for (int i =0; i<NUM_CONN; i++) if (distanceToSource[i] < shortestDistanceToSource) shortestDistanceToSource = distanceToSource[i];
-  
+
   // if we have energy, switch (or keep) lamp on, pass it on and check again in some time
   if (shortestDistanceToSource<99) {
     if (!lampState) switchLampOn();
+    // send shortest distance to ports with a higher distance
     for (int i =0; i<NUM_CONN; i++) if (distanceToSource[i] > shortestDistanceToSource) bus[i]->write(shortestDistanceToSource);
     addTimer(100, processEnergy);
   }
@@ -95,7 +99,7 @@ void processEnergy() {
       addTimer(1000, resetConnectors);
     }
   }
-  
+
   for (int i=0; i<NUM_CONN; i++) distanceToSource[i] = 99;
 }
 
@@ -108,7 +112,7 @@ void setup() {
   pinMode(leds1pin, OUTPUT);
   pinMode(leds2pin, OUTPUT);
   pinMode(button2pin, INPUT_PULLUP);
-  
+
   // set initial states
   for (int i=0; i<NUM_CONN; i++) bus[i]->begin(1200);
   resetConnectors();
@@ -116,13 +120,13 @@ void setup() {
   for (int i=0; i<NUM_CONN; i++) distanceToSource[i] = 99;
   shortestDistanceToSource = 99;
   alertState = false;
-  
+
   // seed random generator
   randomSeed(analogRead(7));
-  
+
   // start sending energy if we're a source
   if (isSource) addTimer(100, sendEnergy);
-  
+
   if(SERIAL_DEBUG) {
     Serial.begin(9600);
     Serial.println("setup");
@@ -133,11 +137,11 @@ void loop() {
   if (isSource) {
     if (!digitalRead(button2pin)) {
       if(SERIAL_DEBUG) Serial.println("alert");
-      char c = ALERT; 
+      char c = ALERT;
       for (int i=0; i<NUM_CONN; i++) bus[i]->write(c);
     }
   }
-  
+
   // check all lines for incoming data
   for (int i=0;i<NUM_CONN;i++) if(bus[i]->available()) {
     char c = bus[i]->read();
@@ -154,21 +158,23 @@ void loop() {
         break;
       case DROPPING_CONNECTOR: // some connector in the network is dropped
         // relax alert state and timer
-        removeTimer(alertTimer);
+        removeTimer(alertTimer); // cancel dropping connector
         alertState = false;
         // propagate signal though network
         for (int j=0; j<NUM_CONN; j++) if (j!=i) bus[j]->write(c);
         break;
-      default: // energy is received
+      default: // distance to source
         if (!isSource) {
+          // if new distance is shorter, take that as distance to source
           if (c<distanceToSource[i]+1) distanceToSource[i] = c+1;
-          // if we are not connected and energy was received start timer to process energy 
+          // if we are not connected (yet) and a new distance was received start timer to process energy
           // (hopefully this does enhances asynchronous updating between the nodes)
+          // ToDo: why use timer here? can't it get triggered to much, shouldn't this simply debounce? why not call on fixed interval?
           if (shortestDistanceToSource == 99) addTimer(10, processEnergy);
         }
     }
   }
-  
+
   // update timed processes
   handleTimers();
 }
