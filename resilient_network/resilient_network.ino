@@ -154,6 +154,7 @@ void readActiveBus() {
     //   Serial.println(activeBus);
     // }
     uint8_t message = bus[activeBus]->read();
+    // ignoring 0, because the initial pulse is read as 0
     if(message != 0) {
       if(SERIAL_DEBUG) {
         Serial.print(activeBus);
