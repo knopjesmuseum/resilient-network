@@ -157,11 +157,13 @@ void loop() {
         }
         break;
       case DROPPING_CONNECTOR: // some connector in the network is dropped
-        // relax alert state and timer
-        removeTimer(alertTimer); // cancel dropping connector
-        alertState = false;
-        // propagate signal though network
-        for (int j=0; j<NUM_CONN; j++) if (j!=i) bus[j]->write(c);
+        if(alertState) {
+          // relax alert state and timer
+          removeTimer(alertTimer); // cancel dropping connector
+          alertState = false;
+          // propagate signal though network
+          for (int j=0; j<NUM_CONN; j++) if (j!=i) bus[j]->write(c);
+        }
         break;
       default: // distance to source
         if (!isSource) {
