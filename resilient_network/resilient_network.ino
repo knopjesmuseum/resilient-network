@@ -5,8 +5,8 @@
 
 #define leds1pin 11
 #define leds2pin 3
-#define button1pin 2
-#define button2pin 4
+#define button1pin 2 // isSource jumper
+#define button2pin 4 // alert button
 
 #define SERIAL_DEBUG true
 
@@ -16,9 +16,14 @@
 #define NUM_CONN 3
 
 SoftwareSerial* bus[NUM_CONN];
-
 int RX[NUM_CONN] = {A1, A3, A5};
 int TX[NUM_CONN] = {A0, A2, A4};
+volatile uint8_t *rxPortRegister[NUM_CONN];
+uint8_t rxBitMask[NUM_CONN];
+int activeBus = -1;
+unsigned long listenStartTime = 0;
+#define listenTimeout 20
+
 int coil[NUM_CONN] = {6, 5, 10}; // magnets
 int distanceToSource[NUM_CONN] = {99, 99, 99};
 int shortestDistanceToSource;
@@ -30,8 +35,9 @@ boolean isSource = false;
 void sendEnergy() {
   if(SERIAL_DEBUG) Serial.println("send energy");
   // source sends energy, as 0, meaning 0 distance to source
-  char distance = 0;
-  for (int i=0; i<NUM_CONN; i++) bus[i]->write(distance);
+  // Note: using distance 1, because initial pulse is read as 0
+  char distance = 1;
+  for (int i=0; i<NUM_CONN; i++) txWrite(i, distance);
   addTimer(100, sendEnergy);
 }
 
@@ -53,8 +59,7 @@ void resetConnectors() {
 
 void dropConnector() {
   // send out message that we're going to drop a connector
-  char c = DROPPING_CONNECTOR;
-  for (int i=0; i<NUM_CONN; i++) bus[i]->write(c);
+  for (int i=0; i<NUM_CONN; i++) txWrite(i, DROPPING_CONNECTOR);
 
   // pick random connected connector to drop
   // count number of ports with a low distance to source
@@ -96,8 +101,8 @@ void processEnergy() {
   if (shortestDistanceToSource<99) {
     if (!lampState) switchLampOn();
     // send shortest distance to ports with a higher distance
-    for (int i =0; i<NUM_CONN; i++) if (distanceToSource[i] > shortestDistanceToSource) bus[i]->write(shortestDistanceToSource);
-    addTimer(100, processEnergy);
+    for (int i =0; i<NUM_CONN; i++) if (distanceToSource[i] > shortestDistanceToSource) txWrite(i, shortestDistanceToSource);
+    addTimer(500, processEnergy);
   }
   // if not, switch off the lamp and drop connectors if we were cut out
   else {
@@ -109,13 +114,106 @@ void processEnergy() {
   }
 
   for (int i=0; i<NUM_CONN; i++) distanceToSource[i] = 99;
+  //addTimer(50, processEnergy);
+}
+
+uint8_t rxRead(int index) {
+  return *rxPortRegister[index] & rxBitMask[index];
+}
+
+void txWrite(int index, int value) {
+  // writeCounter++;
+  // if(writeCounter < MAX_WRITES) return;
+  if(SERIAL_DEBUG) {
+    Serial.print("w");
+    Serial.println(index);
+  }
+  // begin with pulse so other side can start listening
+  digitalWrite(TX[index], LOW);
+  delay(2);
+  digitalWrite(TX[index], HIGH);
+  bus[index]->write(value);
+}
+
+void setActiveBus(int index) {
+  if(SERIAL_DEBUG) {
+    Serial.print("l");
+    Serial.println(index);
+  }
+  activeBus = index;
+  listenStartTime = millis();
+  bus[index]->listen();
+}
+
+void readActiveBus() {
+  while(bus[activeBus]->available()) {
+    if(SERIAL_DEBUG) {
+      Serial.print("a");
+      Serial.println(activeBus);
+    }
+    int message = int(bus[activeBus]->read());
+    if(message != 0) {
+      if(SERIAL_DEBUG) {
+        Serial.print(activeBus);
+        Serial.print(": ");
+        Serial.println(message);
+      }
+      parseMessage(activeBus, message);
+      activeBus = -1;
+      break;
+    }
+  }
+  if (millis()-listenStartTime > listenTimeout) {
+    if(SERIAL_DEBUG) {
+      Serial.print("t");
+      Serial.println(activeBus);
+    }
+    activeBus = -1;
+  }
+}
+
+void parseMessage(int busIndex, int message) {
+  switch(message) {
+    case ALERT: // button is pressed
+      if (!isSource && !alertState) {
+        // set alert state and set random timer
+        alertState = true;
+        alertTimer = addTimer(random(1000, 5000), dropConnector);
+        // propagate signal though network
+        for (int j=0; j<NUM_CONN; j++) if (j!=busIndex) txWrite(j, ALERT);
+      }
+      break;
+    case DROPPING_CONNECTOR: // some connector in the network is dropped
+      if(alertState) {
+        // relax alert state and timer
+        removeTimer(alertTimer); // cancel dropping connector
+        alertState = false;
+        // propagate signal though network
+        for (int j=0; j<NUM_CONN; j++) if (j!=busIndex) txWrite(j, DROPPING_CONNECTOR);
+      }
+      break;
+    default: // distance to source
+      if (!isSource) {
+        // if new distance is shorter, take that as distance to source for this port
+        if (message<distanceToSource[busIndex]+1) distanceToSource[busIndex] = message+1;
+        // if we are not connected (yet) and a new distance was received start timer to process energy
+        // (hopefully this does enhances asynchronous updating between the nodes)
+        // ToDo: why use timer here? can't it get triggered to much, shouldn't this simply debounce? why not call on fixed interval?
+        if (shortestDistanceToSource == 99) addTimer(10, processEnergy);
+      }
+  }
 }
 
 void setup() {
   // set up pins
   for (int i=0; i<NUM_CONN; i++) {
     bus[i] = new SoftwareSerial(RX[i], TX[i]);
+    bus[i]->begin(115200); //(9600); //1200
     pinMode(coil[i], OUTPUT);
+
+    uint8_t port = digitalPinToPort(RX[i]);
+    rxPortRegister[i] = portInputRegister(port);
+    rxBitMask[i] = digitalPinToBitMask(RX[i]);
   }
   pinMode(leds1pin, OUTPUT);
   pinMode(leds2pin, OUTPUT);
@@ -156,47 +254,19 @@ void loop() {
     if (!digitalRead(button2pin)) {
       if(SERIAL_DEBUG) Serial.println("alert");
       char c = ALERT;
-      for (int i=0; i<NUM_CONN; i++) bus[i]->write(c);
+      for (int i=0; i<NUM_CONN; i++) txWrite(i, ALERT);
     }
   }
 
   // check all lines for incoming data
-  for (int i=0;i<NUM_CONN;i++) if(bus[i]->available()) {
-    char c = bus[i]->read();
-    if(SERIAL_DEBUG) {
-      Serial.print(i);
-      Serial.print(": ");
-      Serial.println(int(c));
+  if (activeBus==-1) {
+    for (int i=0; i<NUM_CONN; i++) {
+      if (!rxRead(i)) {
+        setActiveBus(i);
+      }
     }
-    switch(c) {
-      case ALERT: // button is pressed
-        if (!isSource && !alertState) {
-          // set alert state and set random timer
-          alertState = true;
-          alertTimer = addTimer(random(1000, 5000), dropConnector);
-          // propagate signal though network
-          for (int j=0; j<NUM_CONN; j++) if (j!=i) bus[j]->write(c);
-        }
-        break;
-      case DROPPING_CONNECTOR: // some connector in the network is dropped
-        if(alertState) {
-          // relax alert state and timer
-          removeTimer(alertTimer); // cancel dropping connector
-          alertState = false;
-          // propagate signal though network
-          for (int j=0; j<NUM_CONN; j++) if (j!=i) bus[j]->write(c);
-        }
-        break;
-      default: // distance to source
-        if (!isSource) {
-          // if new distance is shorter, take that as distance to source for this port
-          if (c<distanceToSource[i]+1) distanceToSource[i] = c+1;
-          // if we are not connected (yet) and a new distance was received start timer to process energy
-          // (hopefully this does enhances asynchronous updating between the nodes)
-          // ToDo: why use timer here? can't it get triggered to much, shouldn't this simply debounce? why not call on fixed interval?
-          if (shortestDistanceToSource == 99) addTimer(10, processEnergy);
-        }
-    }
+  } else {
+    readActiveBus();
   }
 
   // update timed processes
