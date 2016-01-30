@@ -74,7 +74,7 @@ void dropConnector() {
   }
 
   if(SERIAL_DEBUG) {
-    Serial.println("dropping connector");
+    Serial.println("dropping random connector");
   }
 
   // give communication a break and drop connector
@@ -127,6 +127,8 @@ void txWrite(int busIndex, uint8_t value) {
   if(SERIAL_DEBUG) {
     Serial.print("w");
     Serial.print(busIndex);
+    Serial.print(": ");
+    Serial.println(value);
   }
   // begin with pulse so other side can start listening
   digitalWrite(TX[busIndex], LOW);
@@ -147,11 +149,11 @@ void setActiveBus(int busIndex) {
 
 void readActiveBus() {
   while(bus[activeBus]->available()) {
-    if(SERIAL_DEBUG) {
-      Serial.print("a");
-      Serial.println(activeBus);
-    }
     int message = int(bus[activeBus]->read());
+    // if(SERIAL_DEBUG) {
+    //   Serial.print("a");
+    //   Serial.println(activeBus);
+    // }
     if(message != 0) {
       if(SERIAL_DEBUG) {
         Serial.print(activeBus);
