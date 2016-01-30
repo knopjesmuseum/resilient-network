@@ -26,9 +26,9 @@ unsigned long listenStartTime = 0;
 
 int coil[NUM_CONN] = {6, 5, 10}; // magnets
 int distanceToSource[NUM_CONN] = {99, 99, 99};
-int shortestDistanceToSource;
+int shortestDistanceToSource = 99;
 int lampState;
-int alertState;
+int alertState = false;
 int alertTimer;
 boolean isSource = false;
 
