@@ -208,7 +208,7 @@ void setup() {
   // set up pins
   for (int i=0; i<NUM_CONN; i++) {
     bus[i] = new SoftwareSerial(RX[i], TX[i]);
-    bus[i]->begin(115200); //(9600); //1200
+    bus[i]->begin(9600); //115200); //(9600); //1200
     pinMode(coil[i], OUTPUT);
 
     uint8_t port = digitalPinToPort(RX[i]);
