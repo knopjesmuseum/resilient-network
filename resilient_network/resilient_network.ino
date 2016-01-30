@@ -149,11 +149,11 @@ void setActiveBus(int busIndex) {
 
 void readActiveBus() {
   while(bus[activeBus]->available()) {
-    int message = int(bus[activeBus]->read());
     // if(SERIAL_DEBUG) {
     //   Serial.print("a");
     //   Serial.println(activeBus);
     // }
+    uint8_t message = bus[activeBus]->read();
     if(message != 0) {
       if(SERIAL_DEBUG) {
         Serial.print(activeBus);
