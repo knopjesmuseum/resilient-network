@@ -114,7 +114,7 @@ void processEnergy() {
   }
 
   for (int i=0; i<NUM_CONN; i++) distanceToSource[i] = 99;
-  addTimer(200, processEnergy);
+  addTimer(1000, processEnergy);
 }
 
 uint8_t rxRead(int busIndex) {
