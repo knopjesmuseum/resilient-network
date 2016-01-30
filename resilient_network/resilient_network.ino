@@ -36,7 +36,7 @@ void sendEnergy() {
   if(SERIAL_DEBUG) Serial.println("send energy");
   // source sends energy, as 0, meaning 0 distance to source
   // Note: using distance 1, because initial pulse is read as 0
-  char distance = 1;
+  uint8_t distance = 1;
   for (int i=0; i<NUM_CONN; i++) txWrite(i, distance);
   addTimer(100, sendEnergy);
 }
@@ -121,7 +121,7 @@ uint8_t rxRead(int busIndex) {
   return *rxPortRegister[busIndex] & rxBitMask[busIndex];
 }
 
-void txWrite(int index, int value) {
+void txWrite(int busIndex, uint8_t value) {
   // writeCounter++;
   // if(writeCounter < MAX_WRITES) return;
   if(SERIAL_DEBUG) {
@@ -172,7 +172,7 @@ void readActiveBus() {
   }
 }
 
-void parseMessage(int busIndex, int message) {
+void parseMessage(int busIndex, uint8_t message) {
   switch(message) {
     case ALERT: // button is pressed
       if (!isSource && !alertState) {
