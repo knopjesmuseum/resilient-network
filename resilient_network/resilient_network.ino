@@ -68,6 +68,10 @@ void dropConnector() {
     i++;
   }
 
+  if(SERIAL_DEBUG) {
+    Serial.println("dropping connector");
+  }
+
   // give communication a break and drop connector
   delay(10);
   digitalWrite(coil[i-1], LOW);
@@ -82,6 +86,11 @@ void processEnergy() {
   // assess energy supply, find shortest disance to source
   shortestDistanceToSource = 99;
   for (int i =0; i<NUM_CONN; i++) if (distanceToSource[i] < shortestDistanceToSource) shortestDistanceToSource = distanceToSource[i];
+
+  if(SERIAL_DEBUG) {
+    Serial.print("sd: ");
+    Serial.println(shortestDistanceToSource);
+  }
 
   // if we have energy, switch (or keep) lamp on, pass it on and check again in some time
   if (shortestDistanceToSource<99) {
@@ -131,6 +140,8 @@ void setup() {
   if(SERIAL_DEBUG) {
     Serial.begin(9600);
     Serial.println("setup");
+    Serial.print("isSource: ");
+    Serial.println(isSource);
   }
 }
 
@@ -146,7 +157,11 @@ void loop() {
   // check all lines for incoming data
   for (int i=0;i<NUM_CONN;i++) if(bus[i]->available()) {
     char c = bus[i]->read();
-    if(SERIAL_DEBUG) Serial.println("received: "+c);
+    if(SERIAL_DEBUG) {
+      Serial.print(i);
+      Serial.print(": ");
+      Serial.println(int(c));
+    }
     switch(c) {
       case ALERT: // button is pressed
         if (!isSource && !alertState) {
