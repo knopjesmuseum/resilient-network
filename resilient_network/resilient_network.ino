@@ -125,7 +125,7 @@ void setup() {
   // set initial states
   for (int i=0; i<NUM_CONN; i++) bus[i]->begin(1200);
   resetConnectors();
-  switchLampOff();
+
   for (int i=0; i<NUM_CONN; i++) distanceToSource[i] = 99;
   shortestDistanceToSource = 99;
   alertState = false;
@@ -135,7 +135,13 @@ void setup() {
 
   // start sending energy if we're a source
   isSource = digitalRead(button1pin) == LOW;
-  if (isSource) addTimer(100, sendEnergy);
+  if (isSource) {
+    addTimer(100, sendEnergy);
+    switchLampOn(); // for debugging
+  } else {
+    switchLampOff();
+    processEnergy();
+  }
 
   if(SERIAL_DEBUG) {
     Serial.begin(9600);
