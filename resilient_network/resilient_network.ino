@@ -117,8 +117,8 @@ void processEnergy() {
   //addTimer(50, processEnergy);
 }
 
-uint8_t rxRead(int index) {
-  return *rxPortRegister[index] & rxBitMask[index];
+uint8_t rxRead(int busIndex) {
+  return *rxPortRegister[busIndex] & rxBitMask[busIndex];
 }
 
 void txWrite(int index, int value) {
@@ -126,23 +126,23 @@ void txWrite(int index, int value) {
   // if(writeCounter < MAX_WRITES) return;
   if(SERIAL_DEBUG) {
     Serial.print("w");
-    Serial.println(index);
+    Serial.print(busIndex);
   }
   // begin with pulse so other side can start listening
-  digitalWrite(TX[index], LOW);
+  digitalWrite(TX[busIndex], LOW);
   delay(2);
-  digitalWrite(TX[index], HIGH);
-  bus[index]->write(value);
+  digitalWrite(TX[busIndex], HIGH);
+  bus[busIndex]->write(value);
 }
 
-void setActiveBus(int index) {
+void setActiveBus(int busIndex) {
   if(SERIAL_DEBUG) {
     Serial.print("l");
-    Serial.println(index);
+    Serial.println(busIndex);
   }
-  activeBus = index;
+  activeBus = busIndex;
   listenStartTime = millis();
-  bus[index]->listen();
+  bus[activeBus]->listen();
 }
 
 void readActiveBus() {
@@ -231,14 +231,15 @@ void setup() {
   // seed random generator
   randomSeed(analogRead(7));
 
-  // start sending energy if we're a source
   isSource = digitalRead(button1pin) == LOW;
   if (isSource) {
+    // start sending energy
     addTimer(100, sendEnergy);
     switchLampOn(); // for debugging
   } else {
-    switchLampOff();
+    // start processing energy
     processEnergy();
+    switchLampOff();
   }
 
   if(SERIAL_DEBUG) {
@@ -251,7 +252,7 @@ void setup() {
 
 void loop() {
   if (isSource) {
-    if (!digitalRead(button2pin)) {
+    if (!digitalRead(button2pin)) { // ToDo: use bitmask
       if(SERIAL_DEBUG) Serial.println("alert");
       char c = ALERT;
       for (int i=0; i<NUM_CONN; i++) txWrite(i, ALERT);
