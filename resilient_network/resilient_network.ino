@@ -31,6 +31,8 @@ int shortestDistanceToSource = 99;
 int lampState;
 int alertState = false;
 int alertTimer;
+int alertBlinkTimer;
+int blinkLedState = false;
 boolean isSource = false;
 
 void sendEnergy() {
@@ -85,6 +87,7 @@ void dropConnector() {
 
   // relax alert state
   alertState = false;
+  stopBlink();
 }
 
 // ToDo: why not call this on a fixed interval?
@@ -94,6 +97,14 @@ void processEnergy() {
   for (int i =0; i<NUM_CONN; i++) if (distanceToSource[i] < shortestDistanceToSource) shortestDistanceToSource = distanceToSource[i];
 
   if(SERIAL_DEBUG) {
+
+    Serial.print("d:");
+    for (int i =0; i<NUM_CONN; i++) {
+      Serial.print(" ");
+      Serial.print(distanceToSource[i]);
+    }
+    Serial.println("");
+
     Serial.print("sd: ");
     Serial.println(shortestDistanceToSource);
   }
@@ -111,11 +122,12 @@ void processEnergy() {
       switchLampOff();
       for(int i=0; i<NUM_CONN; i++) digitalWrite(coil[i], LOW);
       addTimer(1000, resetConnectors);
+      stopBlink();
     }
   }
 
   for (int i=0; i<NUM_CONN; i++) distanceToSource[i] = 99;
-  addTimer(1000, processEnergy);
+  addTimer(500, processEnergy);
 }
 
 uint8_t rxRead(int busIndex) {
@@ -184,6 +196,7 @@ void parseMessage(int busIndex, uint8_t message) {
         alertTimer = addTimer(random(1000, 5000), dropConnector);
         // propagate signal though network
         for (int j=0; j<NUM_CONN; j++) if (j!=busIndex) txWrite(j, ALERT);
+        blink();
       }
       break;
     case DROPPING_CONNECTOR: // some connector in the network is dropped
@@ -193,6 +206,7 @@ void parseMessage(int busIndex, uint8_t message) {
         alertState = false;
         // propagate signal though network
         for (int j=0; j<NUM_CONN; j++) if (j!=busIndex) txWrite(j, DROPPING_CONNECTOR);
+        stopBlink();
       }
       break;
     default: // distance to source
@@ -207,6 +221,24 @@ void parseMessage(int busIndex, uint8_t message) {
   }
 }
 
+void blink() {
+	// toggle one led group
+	blinkLedState = !blinkLedState;
+	digitalWrite(leds1pin, blinkLedState? HIGH : LOW);
+
+  digitalWrite(debugLedPin, HIGH);
+  removeTimer(alertTimer);
+	alertBlinkTimer = addTimer(300, blink);
+}
+void stopBlink() {
+  removeTimer(alertTimer);
+  // restore leds
+  if(lampState) switchLampOn();
+  else switchLampOff();
+  digitalWrite(debugLedPin, LOW);
+}
+
+
 void setup() {
   // set up pins
   for (int i=0; i<NUM_CONN; i++) {
@@ -220,6 +252,7 @@ void setup() {
   }
   pinMode(leds1pin, OUTPUT);
   pinMode(leds2pin, OUTPUT);
+  pinMode(debugLedPin, OUTPUT);
   pinMode(button1pin, INPUT_PULLUP);
   pinMode(button2pin, INPUT_PULLUP);
 
